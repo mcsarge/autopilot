@@ -1,5 +1,5 @@
 // Bluetooth.cpp
-#include "Bluetooth.h"
+#include "APBluetooth.h"
 #include <Arduino.h>
 
 int clutch_pin = 15;
@@ -8,7 +8,7 @@ int clutch_pin = 15;
 #define AP_SERVICE_UUID   "ab0828b1-198e-4351-b779-901fa0e0371e"
 #define UUID_RECEIVE      "4ac8a682-9736-4e5d-932b-e9b31405049c"
 
-BLEService *Bluetooth::pService = nullptr;
+BLEService *APBluetooth::pService = nullptr;
 
 
 //all ota stuff
@@ -16,10 +16,10 @@ BLEService *Bluetooth::pService = nullptr;
 #define UUID_FW           "c8659211-af91-4ad3-a995-a58d6fd26145"
 #define UUID_VERSION      "c8659212-af91-4ad3-a995-a58d6fd26145"
 
-BLECharacteristic *Bluetooth::Version_Characteristic = nullptr;
-BLECharacteristic *Bluetooth::FW_Characteristic = nullptr;
+BLECharacteristic *APBluetooth::Version_Characteristic = nullptr;
+BLECharacteristic *APBluetooth::FW_Characteristic = nullptr;
 
-BLEService *Bluetooth::pOTAService = nullptr;
+BLEService *APBluetooth::pOTAService = nullptr;
 
 #define FULL_PACKET 512
 #define CHARPOS_UPDATE_FLAG 5
@@ -33,31 +33,28 @@ int timesWritten = 0;
 
 //end ota
 
-
 #define LED 2
 
+bool APBluetooth::deviceConnected = false;
+bool APBluetooth::oldDeviceConnected = false;
 
-
-bool Bluetooth::deviceConnected = false;
-bool Bluetooth::oldDeviceConnected = false;
-
-BLEServer *Bluetooth::pServer = nullptr;  // Initialize the static member variable
+BLEServer *APBluetooth::pServer = nullptr;  // Initialize the static member variable
 
 
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *pServer) {
-    Bluetooth::deviceConnected = true;
+    APBluetooth::deviceConnected = true;
     Serial.println("connected");
     digitalWrite(LED, HIGH);
   };
 
   void onDisconnect(BLEServer *pServer) {
-    Bluetooth::deviceConnected = false;
+    APBluetooth::deviceConnected = false;
     Serial.println("Disconnected");
     digitalWrite(LED, LOW);
     delay(1000);
     pServer->getAdvertising()->start();
-    Motor::set(0, 0);
+    Tiller::set(0, Tiller::Tiller_Left);
   }
 };
 
@@ -70,8 +67,8 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
     if (rxValue.length() > 0) {
       String rxString = rxValue.c_str();
-      Serial.print("Received Value: ");
-      Serial.println(rxString);
+      //Serial.print("Received Value: ");
+      //Serial.println(rxString);
 
       //do not change because there is old hardware.
       if (rxString.startsWith("motor")) {
@@ -82,7 +79,7 @@ class MyCallbacks : public BLECharacteristicCallbacks {
           motor_speed *= -1;
           motor_direction = 0;
         }
-        Motor::set(motor_speed, motor_direction);
+        Tiller::set(motor_speed, motor_direction==0?Tiller::Tiller_Left:Tiller::Tiller_Right);
         return;
       }
 
@@ -95,8 +92,6 @@ class MyCallbacks : public BLECharacteristicCallbacks {
         if(value == "0") digitalWrite(clutch_pin, LOW);
         else digitalWrite(clutch_pin, HIGH);; 
       }
-
-
     }
   }
 };
@@ -142,14 +137,14 @@ class otaCallback : public BLECharacteristicCallbacks {
 };
 
 
-void Bluetooth::notify(BLECharacteristic *characteristic, String value) {
+void APBluetooth::notify(BLECharacteristic *characteristic, String value) {
   static char charBuff[15];
   value.toCharArray(charBuff, 15);
   characteristic->setValue(charBuff);
   characteristic->notify();
 }
 
-void Bluetooth::setup() {
+void APBluetooth::setup() {
 
     pinMode(clutch_pin, OUTPUT);
     digitalWrite(clutch_pin, LOW);
@@ -197,7 +192,7 @@ void Bluetooth::setup() {
 
 }
 
-void Bluetooth::loop() {
+void APBluetooth::loop() {
 
   if (!deviceConnected && oldDeviceConnected) {
     delay(500);
@@ -212,7 +207,3 @@ void Bluetooth::loop() {
     Serial.println("Connecting...");
   }
 }
-
-
-
-
