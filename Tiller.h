@@ -8,8 +8,8 @@
 class Tiller {
 public:
   typedef enum {
-        Servo =  0,
-        LinearActuator = 1
+        Servo_Mode =  0,
+        LinearActuator_Mode = 1
     } TillerMode;
 
   typedef enum {
@@ -32,7 +32,7 @@ private:
   long prevMillis;
   int startSpeed;
   int lastPosition;
-  
+
 
   bool moving;
   unsigned long state_millis;
@@ -42,7 +42,7 @@ private:
 
   //Servo tillerServo; 
 
-  TillerMode mode = LinearActuator;
+  TillerMode mode = LinearActuator_Mode;
 
   bool end_left = false;
   bool end_right = false;

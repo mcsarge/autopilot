@@ -6,7 +6,7 @@
 //Setup for LinearActuator mode
 Tiller::Tiller(int leftPin, int rightPin) {
 
-  mode = Tiller::LinearActuator;  
+  mode = Tiller::LinearActuator_Mode;  
 
   Serial.print("leftPin = ");
   Serial.println(leftPin);
@@ -26,13 +26,17 @@ Tiller::Tiller(int leftPin, int rightPin) {
 //Setup for Servo mode
 Tiller::Tiller(int servoPin) {
 
-  mode = Tiller::Servo;  
+  mode = Tiller::Servo_Mode;  
 
   Serial.print("servoPin = ");
   Serial.println(servoPin);
   
-  ESP32PWM::allocateTimer(0);
-	tillerServo.setPeriodHertz(50);  
+  // Allow allocation of all timers
+	ESP32PWM::allocateTimer(0);
+	ESP32PWM::allocateTimer(1);
+	ESP32PWM::allocateTimer(2);
+	ESP32PWM::allocateTimer(3);
+  tillerServo.setPeriodHertz(50);  
 
   RPWM_PIN = servoPin;
   tillerServo.attach(servoPin, 500, 2500); //180 degree base
@@ -62,7 +66,7 @@ void Tiller::set(int speed, TillerDirection direction) {
   if(speed > 255)
     speed = 255;
 
-  if (mode==Tiller::LinearActuator){
+  if (mode==Tiller::LinearActuator_Mode){
     //analog write has a limit of 255. 
     //Also, DC motors only have a good speed at 50% PWM = 122. May be lower for some motors.
     
@@ -129,7 +133,7 @@ void Tiller::set(int speed, TillerDirection direction) {
 }
 
 void Tiller::stop() {
-  if (mode==Tiller::LinearActuator){
+  if (mode==Tiller::LinearActuator_Mode){
 
     analogWrite(LPWM_PIN, 0);
     analogWrite(RPWM_PIN, 0);
