@@ -19,10 +19,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "Tiller.h"
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
+#include "Tiller.h"
+#include "Throttle.h"
 
 // UUIDs for the service and characteristic (randomly generated for example)
 #define AP_SERVICE_UUID   "ab0828b1-198e-4351-b779-901fa0e0371e"
@@ -31,9 +32,13 @@ SOFTWARE.
 int clutch_pin = 15;
 
 Tiller __tiller(33);
+Throttle __throttle(32);
 
 void callTiller(int speed, Tiller::TillerDirection direction){
   __tiller.set(speed, direction);  
+}
+void callThrust(int thrust, Throttle::ThrustDirection direction){
+  __throttle.set(thrust, direction);  
 }
 
 
@@ -56,17 +61,30 @@ class MyCallbacks : public BLECharacteristicCallbacks {
             motor_direction = 0;
           }
           callTiller(motor_speed, motor_direction==0?Tiller::Tiller_Left:Tiller::Tiller_Right);
-          return;
-        }
 
-        int splitpoint = rxString.indexOf(",");
-        String key = rxString.substring(0, splitpoint);
-        String value = rxString.substring(splitpoint+1);
+        } else if (rxString.startsWith("speed")){
+          String throttleString = rxValue.c_str();
+          //Serial.print("Received Value: ");
+          //Serial.println(throttleString);
+          throttleString.remove(0, 5);
+          int thrust_percent = rxString.toInt();
+          Throttle::ThrustDirection direction = Throttle::Forward;
+          if (thrust_percent < 0) {
+            thrust_percent *= -1; //back to positive
+            direction = Throttle::Reverse;
+          }
+          callThrust(thrust_percent, direction);
+
+        } else {
+          int splitpoint = rxString.indexOf(",");
+          String key = rxString.substring(0, splitpoint);
+          String value = rxString.substring(splitpoint+1);
 
 
-        if (key == "apOn") {
-          if(value == "0") digitalWrite(clutch_pin, LOW);
-          else digitalWrite(clutch_pin, HIGH);; 
+          if (key == "apOn") {
+            if(value == "0") digitalWrite(clutch_pin, LOW);
+            else digitalWrite(clutch_pin, HIGH);; 
+          }
         }
       }
     }
@@ -76,6 +94,13 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 void setup() {
 
   Serial.begin(115200);
+ 
+  // Allocation of all timers for servos
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
+
 
   // Initialize BLE
   BLEDevice::init("AutoPilot");
@@ -103,38 +128,6 @@ void setup() {
   Serial.println("setup complete"); 
 
   delay(1000);
-
-
-
- Serial.println(map(-200,-255,255,20,160));
-  delay(1000);
- Serial.println(map(-150,-255,255,20,160));
-  delay(1000);
- Serial.println(map(-100,-255,255,20,160));
-  delay(1000);
- Serial.println(map(-50,-255,255,20,160));
-  delay(1000);
- Serial.println(map(0,-255,255,20,160));
-  delay(1000);
- Serial.println(map(50,-255,255,20,160));
-  delay(1000);
- Serial.println(map(100,-255,255,20,160));
-  delay(1000);
- Serial.println(map(150,-255,255,20,160));
-  delay(1000);
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 void loop(){

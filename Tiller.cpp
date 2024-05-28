@@ -31,11 +31,12 @@ Tiller::Tiller(int servoPin) {
   Serial.print("servoPin = ");
   Serial.println(servoPin);
   
-  // Allow allocation of all timers
-	ESP32PWM::allocateTimer(0);
-	ESP32PWM::allocateTimer(1);
-	ESP32PWM::allocateTimer(2);
-	ESP32PWM::allocateTimer(3);
+  //Timers are allocated in the calling program
+	//ESP32PWM::allocateTimer(0);
+	//ESP32PWM::allocateTimer(1);
+	//ESP32PWM::allocateTimer(2);
+	//ESP32PWM::allocateTimer(3);
+  
   tillerServo.setPeriodHertz(50);  
 
   RPWM_PIN = servoPin;
